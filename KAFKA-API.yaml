@@ -18,20 +18,37 @@ servers:
 
 # описание PUB/SUB топиков
 channels:
-  chats.manage:
+  messenger.request.chats:
     description: Топик для событий управления чатами (создание/удаление)
     publish:
       operationId: sendChatEvent
       message:
         oneOf:
-          - $ref: '#/components/messages/chatCreated'
-          - $ref: '#/components/messages/chatDeleted'
+          - $ref: '#/components/messages/messenger.request.createChat'
+          - $ref: '#/components/messages/messenger.request.deleteChat'
     subscribe:
       operationId: receiveChatEvent
       message:
         oneOf:
-          - $ref: '#/components/messages/chatCreated'
-          - $ref: '#/components/messages/chatDeleted'
+          - $ref: '#/components/messages/messenger.request.createChat'
+          - $ref: '#/components/messages/messenger.request.deleteChat'
+    bindings:
+      kafka:
+        partitions: 1
+        replicationFactor: 1
+
+  messenger.response.chats:
+    description: Топик в который прилетают ответы на запросы управления чатами
+    publish:
+      operationId: answerChatEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/messenger.response.createChat'
+    subscribe:
+      operationId: receiveAnswerChatEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/messenger.response.createChat'
     bindings:
       kafka:
         partitions: 1
@@ -59,17 +76,21 @@ channels:
 # описание структуры топиков
 components:
   messages:
-    chatCreated:
-      name: chatCreated
+    messenger.request.createChat:
+      name: request.createChat
       summary: Событие создания чата
       headers:
         type: object
         properties:
           eventType:
             type: string
-            enum: [CHAT_CREATED]
+            enum: [CREATE_CHAT]
+          eventId:
+            type: string
+            format: uuid
         required:
           - eventType
+          - eventId
       payload:
         type: object
         properties:
@@ -78,12 +99,35 @@ components:
             items:
               $ref: '#/components/schemas/chatParticipant'
             minItems: 2
-            maxItems: 2
         required:
           - participants
 
-    chatDeleted:
-      name: chatDeleted
+    messenger.response.createChat:
+      name: response.createChat
+      summary: Ответ на событие создания чата
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [CREATE_CHAT]
+          eventId:
+            type: string
+            format: uuid
+        required:
+          - eventType
+          - eventId
+      payload:
+        type: object
+        properties:
+          chatId:
+            type: string
+            format: uuid
+        required:
+          - participants
+
+    messenger.request.deleteChat:
+      name: request.deleteChat
       summary: Событие удаления чата
       headers:
         type: object
