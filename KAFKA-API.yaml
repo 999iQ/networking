@@ -28,6 +28,7 @@ channels:
           - $ref: '#/components/messages/messenger.request.deleteChat'
     subscribe:
       operationId: receiveChatEvent
+      summary: consumer Messenger
       message:
         oneOf:
           - $ref: '#/components/messages/messenger.request.createChat'
@@ -37,10 +38,12 @@ channels:
         partitions: 1
         replicationFactor: 1
 
+
   messenger.response.chats:
     description: Топик в который прилетают ответы на запросы управления чатами
     publish:
       operationId: answerChatEvent
+      summary: producer Messenger
       message:
         oneOf:
           - $ref: '#/components/messages/messenger.response.createChat'
