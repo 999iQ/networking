@@ -2,18 +2,53 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:17.4 # Используйте последнюю стабильную версию PostgreSQL
+    image: postgres:16-alpine
     container_name: postgresql
     hostname: networking
-    restart: always
+    restart: unless-stopped
     ports:
-      - "5432:5432" # Маппинг порта для доступа извне (например, с хоста)
+      - "5432:5432" # Маппинг порта для доступа извне
     environment:
       POSTGRES_DB: networking  # Имя базы данных
       POSTGRES_USER: postgres  # Имя пользователя базы данных
-      POSTGRES_PASSWORD: 1234  # Пароль пользователя\
+      POSTGRES_PASSWORD: 1234  # Пароль пользователя
     volumes:
       - postgres_data:/var/lib/postgresql/data # Создаем том для хранения данных, чтобы они не потерялись при перезапуске контейнера
+    networks:
+      - service-net
+    # хелф-чек проверяет включенность базы данных
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  networking:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # anyway
+    environment:
+      # postgres
+      DB_HOST: db
+      DB_NAME: networking  # Имя базы данных
+      DB_PORT: 5432
+      DB_USER: postgres  # Имя пользователя базы данных
+      DB_PASSWORD: 1234  # Пароль пользователя
+      DB_SSLMODE: disable
+      DB_AUTO_MIGRATE: false
+      # logger
+      LOG_OUTPUT: file # file or any (terminal)
+      LOG_DIR: logs
+    depends_on:
+      db:
+        condition: service_healthy  # Ждем, пока PostgreSQL не станет healthy
+    restart: on-failure # перезапуск при ошибке
+    networks:
+      - service-net
+
+
 
 #  zookeeper:
 #    image: confluentinc/cp-zookeeper:latest
@@ -58,3 +93,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  service-net:
+    driver: bridge
