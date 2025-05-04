@@ -18,25 +18,6 @@ servers:
 
 # описание PUB/SUB топиков
 channels:
-  messenger/chat/management:
-    publish:
-      summary: Топик для событий управления чатами (создание/удаление), направленными в MC messenger
-      message:
-        oneOf:
-          - $ref: '#/components/messages/messenger.createChat'
-          - $ref: '#/components/messages/messenger.deleteChat'
-      bindings:
-        kafka:
-          partitions: 1
-
-  messenger/chat/events:
-    subscribe:
-      summary: Топик для получения событий, которые произошли в МС messenger
-      message:
-        oneOf:
-          - $ref: '#/components/messages/messenger.chatCreated'
-
-
   auth/management:
     publish:
       summary: Топик для управления авторизацией
@@ -57,78 +38,6 @@ channels:
 # описание структуры топиков
 components:
   messages:
-    messenger.createChat:
-      name: createChat
-      description: Событие создания чата
-      headers:
-        type: object
-        properties:
-          eventType:
-            type: string
-            enum: [CREATE_CHAT]
-          eventId:
-            description: id с которым в дальнейшем вернётся ответ
-            type: string
-            format: uuid
-        required:
-          - eventType
-          - eventId
-      payload:
-        type: object
-        properties:
-          participants:
-            type: array
-            items:
-              $ref: '#/components/schemas/chatParticipant'
-            minItems: 2
-        required:
-          - participants
-
-    messenger.chatCreated:
-      name: chatCreated
-      description: Ответ на событие создания чата
-      headers:
-        type: object
-        properties:
-          eventType:
-            type: string
-            enum: [CREATE_CHAT]
-          eventId:
-            description: id с которым создавался чат
-            type: string
-            format: uuid
-        required:
-          - eventType
-          - eventId
-      payload:
-        type: object
-        properties:
-          chatId:
-            type: string
-            format: uuid
-        required:
-          - participants
-
-    messenger.deleteChat:
-      name: deleteChat
-      summary: Событие удаления чата
-      headers:
-        type: object
-        properties:
-          eventType:
-            type: string
-            enum: [CHAT_DELETED]
-        required:
-          - eventType
-      payload:
-        type: object
-        properties:
-          idChat:
-            type: string
-            format: uuid
-        required:
-          - id_chat
-
     account.created:
       name: account.created
       summary: Событие создания аккаунта

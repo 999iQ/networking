@@ -1,0 +1,135 @@
+asyncapi: 2.6.0
+info:
+  title: AsyncAPI | МС Messenger.
+  version: version 1.0.0
+  description: |
+    AsyncAPI микросервисного взаимодействия c МС Messenger.
+
+# описание кафки
+servers:
+  kafka-prod:
+    url: kafka://kafka.example.com:9092
+    protocol: kafka
+    security:
+      - scramSha256: []
+    bindings:
+      kafka:
+        groupId: chat-service-group
+
+# описание PUB/SUB топиков
+channels:
+  messenger/chat/management:
+    publish:
+      summary: Топик для событий управления чатами (создание/удаление), направленными в MC messenger
+      message:
+        oneOf:
+          - $ref: '#/components/messages/messenger.createChat'
+          - $ref: '#/components/messages/messenger.deleteChat'
+      bindings:
+        kafka:
+          partitions: 1
+
+  messenger/chat/events:
+    subscribe:
+      summary: Топик для получения событий, которые произошли в МС messenger
+      message:
+        oneOf:
+          - $ref: '#/components/messages/messenger.chatCreated'
+
+
+# описание структуры топиков
+components:
+  messages:
+    messenger.createChat:
+      name: createChat
+      description: Событие создания чата
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [CREATE_CHAT]
+          eventId:
+            description: id с которым в дальнейшем вернётся ответ
+            type: string
+            format: uuid
+        required:
+          - eventType
+          - eventId
+      payload:
+        type: object
+        properties:
+          participants:
+            type: array
+            items:
+              $ref: '#/components/schemas/chatParticipant'
+            minItems: 2
+        required:
+          - participants
+
+    messenger.chatCreated:
+      name: chatCreated
+      description: Ответ на событие создания чата
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [CREATE_CHAT]
+          eventId:
+            description: id с которым создавался чат
+            type: string
+            format: uuid
+        required:
+          - eventType
+          - eventId
+      payload:
+        type: object
+        properties:
+          chatId:
+            type: string
+            format: uuid
+        required:
+          - participants
+
+    messenger.deleteChat:
+      name: deleteChat
+      summary: Событие удаления чата
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [CHAT_DELETED]
+        required:
+          - eventType
+      payload:
+        type: object
+        properties:
+          idChat:
+            type: string
+            format: uuid
+        required:
+          - id_chat
+
+
+  # описание содержимого объектов сообщений
+  schemas:
+    chatParticipant:
+      type: object
+      properties:
+        idParticipant:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [account, project]
+      required:
+        - idParticipant
+        - type
+
+
+  securitySchemes:
+    scramSha256:
+      type: scramSha256
+      description: SASL/SCRAM-SHA-256 аутентификация
