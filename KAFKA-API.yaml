@@ -20,7 +20,7 @@ servers:
 channels:
   messenger/chat/management:
     publish:
-      description: Топик для событий управления чатами (создание/удаление), направленными в MC messenger
+      summary: Топик для событий управления чатами (создание/удаление), направленными в MC messenger
       message:
         oneOf:
           - $ref: '#/components/messages/messenger.createChat'
@@ -31,7 +31,7 @@ channels:
 
   messenger/chat/events:
     subscribe:
-      description: Топик для получения событий, которые произошли в МС messenger
+      summary: Топик для получения событий, которые произошли в МС messenger
       message:
         oneOf:
           - $ref: '#/components/messages/messenger.chatCreated'
@@ -39,7 +39,7 @@ channels:
 
   auth/management:
     publish:
-      description: Топик для управления авторизацией
+      summary: Топик для управления авторизацией
       operationId: sendAccountEvent
       message:
         oneOf:
@@ -47,6 +47,7 @@ channels:
 
   auth/account/events:
     subscribe:
+      summary: Топик для того, чтобы другие микросервисы могли отлеживать факт создание нового аккаунта
       operationId: receiveAnswerAccountEvent
       message:
         oneOf:
@@ -58,7 +59,7 @@ components:
   messages:
     messenger.createChat:
       name: createChat
-      summary: Событие создания чата
+      description: Событие создания чата
       headers:
         type: object
         properties:
@@ -85,7 +86,7 @@ components:
 
     messenger.chatCreated:
       name: chatCreated
-      summary: Ответ на событие создания чата
+      description: Ответ на событие создания чата
       headers:
         type: object
         properties:
