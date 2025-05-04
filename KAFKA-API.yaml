@@ -18,69 +18,46 @@ servers:
 
 # описание PUB/SUB топиков
 channels:
-  messenger.request.chats:
-    description: Топик для событий управления чатами (создание/удаление)
+  messenger/chat/management:
     publish:
-      operationId: sendChatEvent
+      description: Топик для событий управления чатами (создание/удаление), направленными в MC messenger
       message:
         oneOf:
-          - $ref: '#/components/messages/messenger.request.createChat'
-          - $ref: '#/components/messages/messenger.request.deleteChat'
+          - $ref: '#/components/messages/messenger.createChat'
+          - $ref: '#/components/messages/messenger.deleteChat'
+      bindings:
+        kafka:
+          partitions: 1
+
+  messenger/chat/events:
     subscribe:
-      operationId: receiveChatEvent
-      summary: consumer Messenger
+      description: Топик для получения событий, которые произошли в МС messenger
       message:
         oneOf:
-          - $ref: '#/components/messages/messenger.request.createChat'
-          - $ref: '#/components/messages/messenger.request.deleteChat'
-    bindings:
-      kafka:
-        partitions: 1
-        replicationFactor: 1
+          - $ref: '#/components/messages/messenger.chatCreated'
 
 
-  messenger.response.chats:
-    description: Топик в который прилетают ответы на запросы управления чатами
+  auth/management:
     publish:
-      operationId: answerChatEvent
-      summary: producer Messenger
-      message:
-        oneOf:
-          - $ref: '#/components/messages/messenger.response.createChat'
-    subscribe:
-      operationId: receiveAnswerChatEvent
-      message:
-        oneOf:
-          - $ref: '#/components/messages/messenger.response.createChat'
-    bindings:
-      kafka:
-        partitions: 1
-        replicationFactor: 1
-
-  auth.account.manage:
-    description: Топик для событий управления аккаунтами
-    publish:
+      description: Топик для управления авторизацией
       operationId: sendAccountEvent
       message:
         oneOf:
-          - $ref: '#/components/messages/accountCreated'
-          - $ref: '#/components/messages/accountDeleted'
+          - $ref: '#/components/messages/user.deleteSessions'
+
+  auth/account/events:
     subscribe:
-      operationId: receiveAccountEvent
+      operationId: receiveAnswerAccountEvent
       message:
         oneOf:
-          - $ref: '#/components/messages/accountCreated'
-          - $ref: '#/components/messages/accountDeleted'
-    bindings:
-      kafka:
-        partitions: 1
-        replicationFactor: 1
+          - $ref: '#/components/messages/account.created'
+
 
 # описание структуры топиков
 components:
   messages:
-    messenger.request.createChat:
-      name: request.createChat
+    messenger.createChat:
+      name: createChat
       summary: Событие создания чата
       headers:
         type: object
@@ -89,6 +66,7 @@ components:
             type: string
             enum: [CREATE_CHAT]
           eventId:
+            description: id с которым в дальнейшем вернётся ответ
             type: string
             format: uuid
         required:
@@ -105,8 +83,8 @@ components:
         required:
           - participants
 
-    messenger.response.createChat:
-      name: response.createChat
+    messenger.chatCreated:
+      name: chatCreated
       summary: Ответ на событие создания чата
       headers:
         type: object
@@ -115,6 +93,7 @@ components:
             type: string
             enum: [CREATE_CHAT]
           eventId:
+            description: id с которым создавался чат
             type: string
             format: uuid
         required:
@@ -129,8 +108,8 @@ components:
         required:
           - participants
 
-    messenger.request.deleteChat:
-      name: request.deleteChat
+    messenger.deleteChat:
+      name: deleteChat
       summary: Событие удаления чата
       headers:
         type: object
@@ -143,14 +122,14 @@ components:
       payload:
         type: object
         properties:
-          id_chat:
+          idChat:
             type: string
             format: uuid
         required:
           - id_chat
 
-    accountCreated:
-      name: accountCreated
+    account.created:
+      name: account.created
       summary: Событие создания аккаунта
       headers:
         type: object
@@ -163,9 +142,9 @@ components:
       payload:
         $ref: '#/components/schemas/accountData'
 
-    accountDeleted:
-      name: accountDeleted
-      summary: Событие удаления аккаунта
+    user.deleteSessions:
+      name: user.deleteSessions
+      summary: Событие удаления сессий аккаунта (refreshTokens)
       headers:
         type: object
         properties:
@@ -177,7 +156,7 @@ components:
       payload:
         type: object
         properties:
-          id:
+          idAccount:
             type: string
             format: uuid
         required:
@@ -201,47 +180,22 @@ components:
     accountData:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-        avatar:
-          type: string
-          format: binary
-        nickname:
-          type: string
         first_name:
           type: string
         last_name:
           type: string
-        middle_name:
-          type: string
-        date_of_birth:
-          type: string
-          format: date
-        id_city:
-          type: string
-          format: uuid
-        id_educational_institution:
-          type: string
-          format: uuid
-        id_specialization:
-          type: string
-          format: uuid
-        course_number:
-          type: integer
-          minimum: 1
-          maximum: 6
-        is_admin:
-          type: boolean
         email:
           type: string
           format: email
+        accepted_privacy_policy:
+          type: boolean
+        accepted_processing_of_personal_data:
+          type: boolean
       required:
-        - id
         - first_name
-        - id_educational_institution
-        - is_admin
+        - last_name
         - email
+
 
   securitySchemes:
     scramSha256:
