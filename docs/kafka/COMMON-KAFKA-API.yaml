@@ -1,0 +1,113 @@
+asyncapi: 2.6.0
+info:
+  title: AsyncAPI микросервисного взаимодействия.
+  version: version 1.0.3
+  description: |
+    Networking отправляет данные о мэтчинге в Chats через Kafka.
+
+# описание кафки
+servers:
+  kafka-prod:
+    url: kafka://kafka.example.com:9092
+    protocol: kafka
+    security:
+      - scramSha256: []
+    bindings:
+      kafka:
+        groupId: chat-service-group
+
+# описание PUB/SUB топиков
+channels:
+  auth/management:
+    publish:
+      summary: Топик для управления авторизацией
+      operationId: sendAccountEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/user.deleteSessions'
+
+  auth/account/events:
+    subscribe:
+      summary: Топик для того, чтобы другие микросервисы могли отлеживать факт создание нового аккаунта
+      operationId: receiveAnswerAccountEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/account.created'
+
+
+# описание структуры топиков
+components:
+  messages:
+    account.created:
+      name: account.created
+      summary: Событие создания аккаунта
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [ACCOUNT_CREATED]
+        required:
+          - eventType
+      payload:
+        $ref: '#/components/schemas/accountData'
+
+    user.deleteSessions:
+      name: user.deleteSessions
+      summary: Событие удаления сессий аккаунта (refreshTokens)
+      headers:
+        type: object
+        properties:
+          eventType:
+            type: string
+            enum: [ACCOUNT_DELETED]
+        required:
+          - eventType
+      payload:
+        type: object
+        properties:
+          idAccount:
+            type: string
+            format: uuid
+        required:
+          - id
+
+  # описание содержимого объектов сообщений
+  schemas:
+    chatParticipant:
+      type: object
+      properties:
+        idParticipant:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [account, project]
+      required:
+        - idParticipant
+        - type
+
+    accountData:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        accepted_privacy_policy:
+          type: boolean
+        accepted_processing_of_personal_data:
+          type: boolean
+      required:
+        - first_name
+        - last_name
+        - email
+
+
+  securitySchemes:
+    scramSha256:
+      type: scramSha256
+      description: SASL/SCRAM-SHA-256 аутентификация
